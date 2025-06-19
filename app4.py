@@ -23,8 +23,8 @@ def aug_extract_features(y, sr):
 # Streamlit Uygulaması
 # ================================
 st.set_page_config(page_title="🎤 Ses Duygu Tanıma", layout="wide")
-st.title("🎵 Ses Duygu Tanıma ve Sınıflandırma (Hızlı Tahmin)")
-st.caption("Eğitim yapılmadan, doğrudan önceden eğitilmiş modelle çalışır.")
+st.title("🎵 Ses Duygu Tanıma ve Sınıflandırma ")
+st.caption("Yağız Tarafından geliştirilmiştir.")
 
 with st.spinner("🔄 Model yükleniyor..."):
     try:
@@ -45,14 +45,6 @@ if uploaded_file is not None:
     y, sr = librosa.load(uploaded_file, sr=48000)
     st.audio(uploaded_file)
 
-    # Dalga formu (küçük boyutlu)
-    fig_wave, ax_wave = plt.subplots(figsize=(6, 2))
-    ax_wave.plot(y)
-    ax_wave.set_title("Ses Dalga Formu")
-    ax_wave.set_xlabel("Örnek Numarası")
-    ax_wave.set_ylabel("Genlik")
-    st.pyplot(fig_wave)
-
     # Özellik çıkarımı
     features = aug_extract_features(y, sr).reshape(1, -1)
     features_scaled = AUG_scaler.transform(features)
@@ -63,18 +55,28 @@ if uploaded_file is not None:
     pred_label = AUG_le.inverse_transform(pred)[0]
     st.success(f"🔮 **Tahmin Edilen Duygu:** {pred_label}")
 
-    # Olasılıkları bar chart ve metin olarak göster
     if hasattr(AUG_best_model, "predict_proba"):
         probs = AUG_best_model.predict_proba(features_pca)[0]
 
-        # Grafik (küçük boyutlu)
-        fig_prob, ax_prob = plt.subplots(figsize=(6, 2))
-        ax_prob.bar(AUG_le.classes_, probs * 100)
-        ax_prob.set_ylabel("Olasılık (%)")
-        ax_prob.set_title("Duygu Olasılıkları")
-        st.pyplot(fig_prob)
+        # Yan yana kolonlar
+        col1, col2 = st.columns(2)
 
-        # Metin olarak yüzde sonuçları yazdır
+        with col1:
+            fig_wave, ax_wave = plt.subplots(figsize=(5, 2))
+            ax_wave.plot(y)
+            ax_wave.set_title("Ses Dalga Formu")
+            ax_wave.set_xlabel("Örnek Numarası")
+            ax_wave.set_ylabel("Genlik")
+            st.pyplot(fig_wave)
+
+        with col2:
+            fig_prob, ax_prob = plt.subplots(figsize=(5, 2))
+            ax_prob.bar(AUG_le.classes_, probs * 100)
+            ax_prob.set_ylabel("Olasılık (%)")
+            ax_prob.set_title("Duygu Olasılıkları")
+            st.pyplot(fig_prob)
+
+        # Metin olarak yüzde sonuçları
         st.markdown("### 🔊 Tahmin edilen duygu ve olasılıklar")
         st.markdown(f"**Tahmin edilen duygu:** {pred_label}")
         for label, prob in zip(AUG_le.classes_, probs):
