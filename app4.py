@@ -5,7 +5,6 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import joblib
-
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 # ================================
@@ -46,8 +45,8 @@ if uploaded_file is not None:
     y, sr = librosa.load(uploaded_file, sr=48000)
     st.audio(uploaded_file)
 
-    # Dalga formu
-    fig_wave, ax_wave = plt.subplots(figsize=(10, 3))
+    # Dalga formu (küçük boyutlu)
+    fig_wave, ax_wave = plt.subplots(figsize=(6, 2))
     ax_wave.plot(y)
     ax_wave.set_title("Ses Dalga Formu")
     ax_wave.set_xlabel("Örnek Numarası")
@@ -64,15 +63,25 @@ if uploaded_file is not None:
     pred_label = AUG_le.inverse_transform(pred)[0]
     st.success(f"🔮 **Tahmin Edilen Duygu:** {pred_label}")
 
+    # Olasılıkları bar chart ve metin olarak göster
     if hasattr(AUG_best_model, "predict_proba"):
         probs = AUG_best_model.predict_proba(features_pca)[0]
-        fig_prob, ax_prob = plt.subplots()
+
+        # Grafik (küçük boyutlu)
+        fig_prob, ax_prob = plt.subplots(figsize=(6, 2))
         ax_prob.bar(AUG_le.classes_, probs * 100)
         ax_prob.set_ylabel("Olasılık (%)")
         ax_prob.set_title("Duygu Olasılıkları")
         st.pyplot(fig_prob)
+
+        # Metin olarak yüzde sonuçları yazdır
+        st.markdown("### 🔊 Tahmin edilen duygu ve olasılıklar")
+        st.markdown(f"**Tahmin edilen duygu:** {pred_label}")
+        for label, prob in zip(AUG_le.classes_, probs):
+            st.markdown(f"- {label}: {prob * 100:.2f}%")
+
     else:
         st.info("Bu model probability desteklemiyor.")
 
 st.markdown("---")
-st.caption("💻 *Geliştiren: Yağız | Powered by Streamlit, Librosa, Scikit-learn*")
+st.caption("💻 *Geliştiren: Yağız*")
