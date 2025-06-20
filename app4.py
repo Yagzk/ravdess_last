@@ -5,7 +5,6 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import joblib
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 # ================================
 # Yardımcı fonksiyonlar
@@ -23,8 +22,8 @@ def aug_extract_features(y, sr):
 # Streamlit Uygulaması
 # ================================
 st.set_page_config(page_title="🎤 Ses Duygu Tanıma", layout="wide")
-st.title("🎵 Ses Duygu Tanıma ve Sınıflandırma ")
-st.caption("Yağız Tarafından geliştirilmiştir.")
+st.title("🎵 Ses Duygu Tanıma ve Sınıflandırma")
+st.caption("Yağız tarafından geliştirilmiştir.")
 
 with st.spinner("🔄 Model yükleniyor..."):
     try:
@@ -50,40 +49,53 @@ if uploaded_file is not None:
     features_scaled = AUG_scaler.transform(features)
     features_pca = AUG_pca.transform(features_scaled)
 
-    # Tahmin
+    # Tahmin edilen duygu
     pred = AUG_best_model.predict(features_pca)
     pred_label = AUG_le.inverse_transform(pred)[0]
     st.success(f"🔮 **Tahmin Edilen Duygu:** {pred_label}")
 
-    if hasattr(AUG_best_model, "predict_proba"):
-        probs = AUG_best_model.predict_proba(features_pca)[0]
+    # Yan yana görseller
+    col1, col2 = st.columns(2)
 
-        # Yan yana kolonlar
-        col1, col2 = st.columns(2)
+    with col1:
+        fig_wave, ax_wave = plt.subplots(figsize=(5, 2))
+        ax_wave.plot(y)
+        ax_wave.set_title("Ses Dalga Formu")
+        ax_wave.set_xlabel("Örnek Numarası")
+        ax_wave.set_ylabel("Genlik")
+        st.pyplot(fig_wave)
 
-        with col1:
-            fig_wave, ax_wave = plt.subplots(figsize=(5, 2))
-            ax_wave.plot(y)
-            ax_wave.set_title("Ses Dalga Formu")
-            ax_wave.set_xlabel("Örnek Numarası")
-            ax_wave.set_ylabel("Genlik")
-            st.pyplot(fig_wave)
+    with col2:
+        if hasattr(AUG_best_model, "decision_function"):
+            scores = AUG_best_model.decision_function(features_pca)[0]
+            # Normalize et
+            scores_norm = (scores - scores.min()) / (scores.max() - scores.min())
 
-        with col2:
             fig_prob, ax_prob = plt.subplots(figsize=(5, 2))
-            ax_prob.bar(AUG_le.classes_, probs * 100)
+            ax_prob.bar(AUG_le.classes_, scores_norm * 100, color="skyblue")
+            ax_prob.set_ylabel("Skor (%)")
+            ax_prob.set_title("Duygu Skorları (Normalize Edilmiş)")
+            st.pyplot(fig_prob)
+
+            st.markdown("### 🔊 Skor Detayları (normalize edilmiş)")
+            for label, score in sorted(zip(AUG_le.classes_, scores_norm), key=lambda x: x[1], reverse=True):
+                st.markdown(f"- **{label}**: {score * 100:.2f}%")
+
+        elif hasattr(AUG_best_model, "predict_proba"):
+            probs = AUG_best_model.predict_proba(features_pca)[0]
+
+            fig_prob, ax_prob = plt.subplots(figsize=(5, 2))
+            ax_prob.bar(AUG_le.classes_, probs * 100, color="skyblue")
             ax_prob.set_ylabel("Olasılık (%)")
             ax_prob.set_title("Duygu Olasılıkları")
             st.pyplot(fig_prob)
 
-        # Metin olarak yüzde sonuçları
-        st.markdown("### 🔊 Tahmin edilen duygu ve olasılıklar")
-        st.markdown(f"**Tahmin edilen duygu:** {pred_label}")
-        for label, prob in zip(AUG_le.classes_, probs):
-            st.markdown(f"- {label}: {prob * 100:.2f}%")
+            st.markdown("### 🔊 Olasılık Detayları")
+            for label, prob in sorted(zip(AUG_le.classes_, probs), key=lambda x: x[1], reverse=True):
+                st.markdown(f"- **{label}**: {prob * 100:.2f}%")
 
-    else:
-        st.info("Bu model probability desteklemiyor.")
+        else:
+            st.info("⚠️ Bu model skor veya olasılık döndüremiyor.")
 
 st.markdown("---")
 st.caption("💻 *Geliştiren: Yağız*")
