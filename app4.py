@@ -74,10 +74,10 @@ if uploaded_file is not None:
             fig_prob, ax_prob = plt.subplots(figsize=(5, 2))
             ax_prob.bar(AUG_le.classes_, scores_norm * 100, color="skyblue")
             ax_prob.set_ylabel("Skor (%)")
-            ax_prob.set_title("Duygu Skorları (Normalize Edilmiş)")
+            ax_prob.set_title("Karar Sınırı Skorları (Normalize Edilmiş)")
             st.pyplot(fig_prob)
 
-            st.markdown("### 🔊 Skor Detayları (normalize edilmiş)")
+            st.markdown("### 🔊 Skor Detayları (Bu değerler olasılık değil; karar sınırına göre normalize edilmiş skorlar.)")
             for label, score in sorted(zip(AUG_le.classes_, scores_norm), key=lambda x: x[1], reverse=True):
                 st.markdown(f"- **{label}**: {score * 100:.2f}%")
 
